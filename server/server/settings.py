@@ -77,6 +77,7 @@ MIDDLEWARE = [
 CORS_ALLOWED_ORIGINS = [
     "https://demobet-mobile.netlify.app",
 ]
+CORS_ALLOW_ALL_ORIGINS = True
 ROOT_URLCONF = "server.urls"
 
 TEMPLATES = [
