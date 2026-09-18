@@ -90,12 +90,14 @@ class Command(BaseCommand):
                 },
             )
 
-            # Match
+                        # Match
             start_time = parse_datetime(starting_at)
 
-if start_time and timezone.is_naive(start_time):
-    start_time = timezone.make_aware(start_time, timezone.get_current_timezone())
-    
+            if start_time and timezone.is_naive(start_time):
+                start_time = timezone.make_aware(
+                    start_time,
+                    timezone.get_current_timezone()
+                )
 
             match, created = Match.objects.update_or_create(
                 source_id=str(fixture_id),
