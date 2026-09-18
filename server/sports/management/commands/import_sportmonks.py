@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.utils.dateparse import parse_datetime
+from django.utils import timezone
 from django.utils.text import slugify
 
 from sports.models import Sport, League, Match
@@ -91,6 +92,10 @@ class Command(BaseCommand):
 
             # Match
             start_time = parse_datetime(starting_at)
+
+if start_time and timezone.is_naive(start_time):
+    start_time = timezone.make_aware(start_time, timezone.get_current_timezone())
+    
 
             match, created = Match.objects.update_or_create(
                 source_id=str(fixture_id),
