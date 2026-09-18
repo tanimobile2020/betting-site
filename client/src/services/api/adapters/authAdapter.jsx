@@ -3,10 +3,10 @@ import { ApiClient } from '../core/apiClient'
 
 // Define the URLs for the authentication endpoints
 const AUTH_URLS = {
-    LOGIN: '/token/',
-    REGISTER: '/register/',
-    REFRESH_TOKEN: '/token/refresh/',
-    LOGOUT: '/logout/'
+    LOGIN: 'token/',
+    REGISTER: 'register/',
+    REFRESH_TOKEN: 'token/refresh/',
+    LOGOUT: 'logout/'
 }
 
 // Create the AuthAdapter class
