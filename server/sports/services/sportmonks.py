@@ -11,8 +11,13 @@ class SportmonksService:
         if not self.token:
             raise ValueError("SPORTMONKS_API_TOKEN is not configured")
 
-    def get_fixtures(self):
-        url = f"{self.BASE_URL}/fixtures"
+    def get_fixtures(self, date=None):
+        from datetime import date as date_class
+
+        if date is None:
+            date = date_class.today().isoformat()
+
+        url = f"{self.BASE_URL}/fixtures/date/{date}"
 
         response = requests.get(
             url,
