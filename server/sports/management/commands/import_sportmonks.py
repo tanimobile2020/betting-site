@@ -102,7 +102,7 @@ class Command(BaseCommand):
                     "status": "scheduled",
                     "is_active": True,
                     "is_popular": False,
-                    "is_bet_available": False,
+                    "is_bet_available": True,
                     "source_url": f"sportmonks:fixture:{fixture_id}",
                 },
             )
