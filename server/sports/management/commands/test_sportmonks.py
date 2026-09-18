@@ -3,40 +3,45 @@ from sports.services.sportmonks import SportmonksService
 
 
 class Command(BaseCommand):
-    help = "Test Sportmonks API connection"
+    help = "Test Sportmonks odds"
 
     def handle(self, *args, **options):
-        self.stdout.write("Connecting to Sportmonks...")
+        service = SportmonksService()
+
+        fixture_id = 19722783
+
+        self.stdout.write(
+            f"Testing Sportmonks odds for fixture {fixture_id}..."
+        )
 
         try:
-            service = SportmonksService()
-            result = service.get_fixtures()
-
-            fixtures = result.get("data", [])
+            result = service.get_fixture_odds(fixture_id)
+            odds = result.get("data", [])
 
             self.stdout.write(
                 self.style.SUCCESS(
-                    f"Sportmonks connection OK. Fixtures returned: {len(fixtures)}"
+                    f"Odds returned: {len(odds)}"
                 )
             )
 
-            for fixture in fixtures[:10]:
-                fixture_id = fixture.get("id")
-                name = fixture.get("name")
-                starting_at = fixture.get("starting_at")
-
+            for odd in odds[:30]:
                 self.stdout.write(
-                    f"ID: {fixture_id} | {name} | {starting_at}"
+                    f"Market: {odd.get('market_id')} | "
+                    f"Bookmaker: {odd.get('bookmaker_id')} | "
+                    f"Label: {odd.get('label')} | "
+                    f"Value: {odd.get('value')}"
                 )
 
-            if not fixtures:
+            if not odds:
                 self.stdout.write(
                     self.style.WARNING(
-                        "Connection works, but this endpoint returned no fixtures."
+                        "No odds returned for this fixture."
                     )
                 )
 
         except Exception as e:
             self.stdout.write(
-                self.style.ERROR(f"Sportmonks error: {e}")
+                self.style.ERROR(
+                    f"Sportmonks odds error: {e}"
+                )
             )
