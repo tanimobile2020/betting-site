@@ -46,3 +46,5 @@ webdriver-manager==4.0.2
 websocket-client==1.8.0
 wsproto==1.2.0
 gunicorn
+dj-database-url==2.3.0
+psycopg2-binary==2.9.10
