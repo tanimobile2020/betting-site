@@ -12,6 +12,7 @@ click-plugins==1.1.1
 click-repl==0.3.0
 django>=5.2.7
 djangorestframework==3.16.0
+django-cors-headers==4.9.0
 djangorestframework_simplejwt==5.5.1
 drf-yasg==1.21.10
 h11==0.16.0
