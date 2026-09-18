@@ -10,7 +10,20 @@ class SportmonksService:
 
         if not self.token:
             raise ValueError("SPORTMONKS_API_TOKEN is not configured")
+    def get_fixture_odds(self, fixture_id):
+        url = f"{self.BASE_URL}/odds/pre-match/fixtures/{fixture_id}"
 
+        response = requests.get(
+            url,
+            params={
+                "api_token": self.token,
+            },
+            timeout=30,
+        )
+
+        response.raise_for_status()
+        return response.json()
+        
     def get_fixtures(self, date=None):
         from datetime import date as date_class
 
