@@ -6,6 +6,7 @@ import { Link } from "react-router";
 
 const SportEvent = ({ match }) => {
   const { selectedBets, toggleBet } = useBets();
+
   const selectedBet = selectedBets[match.id];
 
   const betOptions = [
@@ -27,7 +28,11 @@ const SportEvent = ({ match }) => {
       value: "2",
       odds: match.away_win_odds,
     },
-  ].filter((option) => option.odds !== null && option.odds !== undefined);
+  ].filter(
+    (option) =>
+      option.odds !== null &&
+      option.odds !== undefined
+  );
 
   return (
     <div className="bg-card rounded-md p-3">
@@ -36,10 +41,18 @@ const SportEvent = ({ match }) => {
       </p>
 
       <div className="flex justify-between items-center gap-3">
-        <Link to={`/match/${match.id}`} className="flex-1">
+        <Link
+          to={`/match/${match.id}`}
+          className="flex-1"
+        >
           <div className="flex flex-col">
-            <span className="font-bold">{match.home_team}</span>
-            <span className="font-bold">{match.away_team}</span>
+            <span className="font-bold">
+              {match.home_team}
+            </span>
+
+            <span className="font-bold">
+              {match.away_team}
+            </span>
           </div>
         </Link>
 
@@ -49,8 +62,16 @@ const SportEvent = ({ match }) => {
               key={option.id}
               title={option.value}
               odds={option.odds}
-              isSelected={selectedBet?.value === option.value}
-              onClick={() => toggleBet(match, option)}
+              isSelected={
+                selectedBet?.betOptionId === option.id
+              }
+              onClick={() =>
+                toggleBet(
+                  match.id,
+                  option,
+                  match
+                )
+              }
             />
           ))}
         </div>
