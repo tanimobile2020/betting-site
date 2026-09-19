@@ -1,4 +1,5 @@
 from decimal import Decimal, InvalidOperation
+from datetime import timedelta
 
 from django.core.management.base import BaseCommand
 from django.utils import timezone
@@ -21,32 +22,68 @@ class Command(BaseCommand):
     # Bookmaker që po përdorim aktualisht
     BOOKMAKER_ID = 2
 
-    # Market 1 = 1X2 që po funksionon aktualisht
+    # Market 1 = 1X2
     MARKET_1X2_ID = 1
+
+    # Sot + 6 ditët e ardhshme = 7 ditë
+    DAYS_TO_IMPORT = 7
 
     def handle(self, *args, **options):
         service = SportmonksService()
 
         self.stdout.write(
-            "Loading Sportmonks fixtures..."
+            "Loading Sportmonks fixtures for the next 7 days..."
         )
 
-        try:
-            result = service.get_fixtures()
-            fixtures = result.get("data", [])
-        except Exception as e:
+        all_fixtures = []
+        today = timezone.localdate()
+
+        # ---------------------------------------
+        # LOAD FIXTURES FOR NEXT 7 DAYS
+        # ---------------------------------------
+
+        for day_offset in range(self.DAYS_TO_IMPORT):
+            fixture_date = today + timedelta(days=day_offset)
+            date_string = fixture_date.isoformat()
+
             self.stdout.write(
-                self.style.ERROR(
-                    f"Sportmonks fixtures error: {e}"
-                )
+                f"Loading fixtures for {date_string}..."
             )
-            return
+
+            try:
+                result = service.get_fixtures(
+                    date=date_string
+                )
+
+                fixtures = result.get("data", [])
+
+                self.stdout.write(
+                    self.style.SUCCESS(
+                        f"{date_string}: "
+                        f"{len(fixtures)} fixtures returned"
+                    )
+                )
+
+                all_fixtures.extend(fixtures)
+
+            except Exception as e:
+                self.stdout.write(
+                    self.style.ERROR(
+                        f"Sportmonks fixtures error "
+                        f"for {date_string}: {e}"
+                    )
+                )
 
         self.stdout.write(
             self.style.SUCCESS(
-                f"Fixtures returned: {len(fixtures)}"
+                f"Total fixtures returned: "
+                f"{len(all_fixtures)}"
             )
         )
+
+        # ---------------------------------------
+        # SPORT
+        # ---------------------------------------
 
         sport, _ = Sport.objects.get_or_create(
             slug="football",
@@ -56,19 +93,25 @@ class Command(BaseCommand):
             },
         )
 
-        for fixture in fixtures:
+        # ---------------------------------------
+        # IMPORT FIXTURES
+        # ---------------------------------------
+
+        for fixture in all_fixtures:
             try:
                 self.import_fixture(
                     service,
                     sport,
                     fixture,
                 )
+
             except Exception as e:
                 fixture_id = fixture.get("id")
 
                 self.stdout.write(
                     self.style.ERROR(
-                        f"Fixture {fixture_id} error: {e}"
+                        f"Fixture {fixture_id} "
+                        f"error: {e}"
                     )
                 )
 
@@ -90,6 +133,7 @@ class Command(BaseCommand):
         league_data = fixture.get("league") or {}
 
         league_id = league_data.get("id")
+
         league_name = (
             league_data.get("name")
             or "Sportmonks League"
@@ -314,10 +358,15 @@ class Command(BaseCommand):
             "start_time": start_time,
             "status": "scheduled",
             "is_active": True,
-            "is_popular": False,
+
+            # E bëjmë True që ndeshja të shfaqet
+            # edhe te endpoint-i matches/popular/
+            "is_popular": True,
+
             "is_bet_available": (
                 len(odds) > 0
             ),
+
             "source_url": (
                 f"sportmonks:fixture:"
                 f"{fixture_id}"
@@ -329,10 +378,13 @@ class Command(BaseCommand):
                 {
                     "home_win_odds":
                         home_odds,
+
                     "draw_odds":
                         draw_odds,
+
                     "away_win_odds":
                         away_odds,
+
                     "last_odds_update":
                         timezone.now(),
                 }
@@ -375,6 +427,7 @@ class Command(BaseCommand):
                     f"{imported_options}"
                 )
             )
+
         else:
             self.stdout.write(
                 self.style.WARNING(
@@ -399,6 +452,7 @@ class Command(BaseCommand):
         #
         # Kjo shmang dublikimet kur komanda
         # ekzekutohet përsëri.
+
         BetOption.objects.filter(
             match=match
         ).delete()
@@ -411,6 +465,7 @@ class Command(BaseCommand):
 
             # Marrim vetëm bookmaker-in
             # që kemi zgjedhur.
+
             if (
                 bookmaker_id
                 != self.BOOKMAKER_ID
@@ -465,6 +520,7 @@ class Command(BaseCommand):
                     defaults={
                         "name":
                             market_name,
+
                         "is_active":
                             True,
                     },
@@ -474,6 +530,7 @@ class Command(BaseCommand):
             # Nëse fillimisht është krijuar
             # si "Market 1" dhe më vonë API
             # na jep emrin real, e përditësojmë.
+
             if (
                 market_name
                 and bet_type.name
@@ -483,6 +540,7 @@ class Command(BaseCommand):
                 )
             ):
                 bet_type.name = market_name
+
                 bet_type.save(
                     update_fields=[
                         "name"
@@ -499,7 +557,9 @@ class Command(BaseCommand):
 
             # Sportmonks mund të ketë edhe
             # total/handicap të lidhur me odd.
+
             total = odd.get("total")
+
             handicap = odd.get(
                 "handicap"
             )
@@ -525,6 +585,7 @@ class Command(BaseCommand):
                 )
 
             # Modeli aktual ka max_length=50.
+
             option_label = (
                 option_label[:50]
             )
@@ -558,6 +619,7 @@ class Command(BaseCommand):
 
             # DecimalField i modelit është
             # max_digits=5, decimal_places=2.
+
             return decimal_value.quantize(
                 Decimal("0.01")
             )
