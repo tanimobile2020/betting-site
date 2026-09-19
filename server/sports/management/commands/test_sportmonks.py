@@ -28,14 +28,7 @@ class Command(BaseCommand):
             for odd in odds:
                 label = str(odd.get("label", "")).strip().lower()
 
-                if label in ["1", "x", "2", "home", "draw", "away"]:
-                    self.stdout.write(
-                        f"Market: {odd.get('market_id')} | "
-                        f"Bookmaker: {odd.get('bookmaker_id')} | "
-                        f"Label: {odd.get('label')} | "
-                        f"Value: {odd.get('value')}"
-                    )
-                    found += 1
+                if odd.get("market
 
             self.stdout.write(
                 self.style.SUCCESS(
