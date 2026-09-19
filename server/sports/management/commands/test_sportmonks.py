@@ -3,7 +3,7 @@ from sports.services.sportmonks import SportmonksService
 
 
 class Command(BaseCommand):
-    help = "Test Sportmonks odds"
+    help = "Test Sportmonks 1X2 odds"
 
     def handle(self, *args, **options):
         service = SportmonksService()
@@ -19,20 +19,25 @@ class Command(BaseCommand):
 
             self.stdout.write(
                 self.style.SUCCESS(
-                    f"Odds returned: {len(odds)}"
+                    f"Total odds returned: {len(odds)}"
                 )
             )
 
             found = 0
 
             for odd in odds:
-                label = str(odd.get("label", "")).strip().lower()
-
-                if odd.get("market
+                if odd.get("market_id") == 19:
+                    self.stdout.write(
+                        f"Market: {odd.get('market_id')} | "
+                        f"Bookmaker: {odd.get('bookmaker_id')} | "
+                        f"Label: {odd.get('label')} | "
+                        f"Value: {odd.get('value')}"
+                    )
+                    found += 1
 
             self.stdout.write(
                 self.style.SUCCESS(
-                    f"1X2 candidates found: {found}"
+                    f"Market 19 odds found: {found}"
                 )
             )
 
