@@ -1,68 +1,67 @@
+from collections import defaultdict
+
 from django.core.management.base import BaseCommand
 from sports.services.sportmonks import SportmonksService
 
 
 class Command(BaseCommand):
-    help = "List unique Sportmonks markets from fixture odds"
+    help = "Show Fulltime Result odds grouped by bookmaker"
 
     def handle(self, *args, **options):
         service = SportmonksService()
 
         fixture_id = 19722783
+        market_id = 1
 
         self.stdout.write(
-            f"Loading odds for fixture {fixture_id}..."
+            f"Loading Fulltime Result odds "
+            f"for fixture {fixture_id}..."
         )
 
         try:
             result = service.get_fixture_odds(fixture_id)
             odds = result.get("data", [])
 
-            self.stdout.write(
-                self.style.SUCCESS(
-                    f"Total odds returned: {len(odds)}"
-                )
-            )
-
-            markets = {}
+            bookmakers = defaultdict(dict)
 
             for odd in odds:
-                market_id = odd.get("market_id")
-                description = odd.get("market_description")
+                if odd.get("market_id") != market_id:
+                    continue
 
-                if market_id not in markets:
-                    markets[market_id] = {
-                        "description": description,
-                        "labels": set(),
-                    }
-
+                bookmaker_id = odd.get("bookmaker_id")
                 label = odd.get("label")
+                value = odd.get("value")
 
-                if label:
-                    markets[market_id]["labels"].add(
-                        str(label)
-                    )
+                if label in ("Home", "Draw", "Away"):
+                    bookmakers[bookmaker_id][label] = value
 
             self.stdout.write(
                 self.style.SUCCESS(
-                    f"Unique markets found: {len(markets)}"
+                    f"Bookmakers found: {len(bookmakers)}"
                 )
             )
 
-            for market_id in sorted(
-                markets,
-                key=lambda x: int(x)
+            for bookmaker_id, values in sorted(
+                bookmakers.items(),
+                key=lambda item: int(item[0])
             ):
-                market = markets[market_id]
+                home = values.get("Home", "-")
+                draw = values.get("Draw", "-")
+                away = values.get("Away", "-")
 
-                labels = ", ".join(
-                    sorted(market["labels"])
+                complete = all(
+                    label in values
+                    for label in ("Home", "Draw", "Away")
                 )
 
+                status = "COMPLETE" if complete else "INCOMPLETE"
+
                 self.stdout.write(
-                    f"Market ID: {market_id} | "
-                    f"Description: {market['description']} | "
-                    f"Labels: {labels}"
+                    f"Bookmaker ID: {bookmaker_id} | "
+                    f"Home: {home} | "
+                    f"Draw: {draw} | "
+                    f"Away: {away} | "
+                    f"{status}"
                 )
 
         except Exception as e:
