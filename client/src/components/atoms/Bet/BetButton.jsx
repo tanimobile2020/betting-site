@@ -8,10 +8,20 @@ const BetButton = ({
   onClick,
   className = "",
 }) => {
+  const handleClick = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (onClick) {
+      onClick();
+    }
+  };
+
   return (
     <Button
+      type="button"
       variant="destructive"
-      onClick={onClick}
+      onClick={handleClick}
       className={`
         flex
         flex-col
