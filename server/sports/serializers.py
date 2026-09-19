@@ -69,6 +69,49 @@ class BetOptionSerializer(serializers.ModelSerializer):
         ]
 
 
+# --------------------------------------------------
+# LIGHT MATCH SERIALIZER
+# Used for homepage / lists.
+# Does NOT load thousands of BetOption objects.
+# --------------------------------------------------
+
+class MatchListSerializer(serializers.ModelSerializer):
+    league_name = serializers.CharField(
+        source="league.name",
+        read_only=True,
+    )
+
+    sport_name = serializers.CharField(
+        source="league.sport.name",
+        read_only=True,
+    )
+
+    class Meta:
+        model = Match
+        fields = [
+            "id",
+            "league_name",
+            "queue",
+            "sport_name",
+            "home_team",
+            "away_team",
+            "start_time",
+            "status",
+            "home_score",
+            "away_score",
+            "home_win_odds",
+            "draw_odds",
+            "away_win_odds",
+            "is_bet_available",
+        ]
+
+
+# --------------------------------------------------
+# FULL MATCH SERIALIZER
+# Used for an individual match where markets/odds
+# are required.
+# --------------------------------------------------
+
 class MatchSerializer(serializers.ModelSerializer):
     league_name = serializers.CharField(
         source="league.name",
@@ -127,13 +170,11 @@ class BetSlipCreateSerializer(serializers.ModelSerializer):
         ]
 
     def validate(self, data):
-        # Validate bets
         if not data["bets"]:
             raise serializers.ValidationError(
                 "At least one bet is required"
             )
 
-        # Validate total amount
         total_amount = data["total_amount"]
 
         if total_amount <= 0:
@@ -141,7 +182,6 @@ class BetSlipCreateSerializer(serializers.ModelSerializer):
                 "Amount must be greater than 0"
             )
 
-        # Validate matches
         for bet_data in data["bets"]:
             try:
                 match = Match.objects.get(
@@ -166,13 +206,11 @@ class BetSlipCreateSerializer(serializers.ModelSerializer):
             "total_amount"
         )
 
-        # Calculate total odds
         total_odds = 1
 
         for bet_data in bets_data:
             total_odds *= bet_data["odds"]
 
-        # Create bet slip
         bet_slip = BetSlip.objects.create(
             user=self.context["request"].user,
             total_amount=total_amount,
@@ -180,7 +218,6 @@ class BetSlipCreateSerializer(serializers.ModelSerializer):
             potential_win=total_amount * total_odds,
         )
 
-        # Create bets
         for bet_data in bets_data:
             Bet.objects.create(
                 bet_slip=bet_slip,
@@ -246,7 +283,6 @@ class UserBetSlipSerializer(serializers.ModelSerializer):
     def get_matches_data(self, obj):
         matches = []
 
-        # Get match data for each bet
         for bet in obj.bets.all():
             match_data = {
                 "id": bet.match.id,
@@ -320,11 +356,9 @@ class LeagueDetailSerializer(serializers.ModelSerializer):
 
         now = timezone.now()
 
-        # Count matches that are either live or scheduled
         return (
             obj.matches.filter(
                 is_active=True,
-                is_bet_available=True,
             )
             .filter(
                 Q(status="live")
