@@ -13,13 +13,16 @@ import { formatMatchDate } from "@/utils/formatMatchDate";
 const MatchContent = ({ matchData }) => {
   const { selectedBets, toggleBet } = useBets();
 
+  const [openMarkets, setOpenMarkets] = useState({});
+
   const groupedMarkets = useMemo(() => {
     const groups = {};
 
     const options = matchData?.bet_options || [];
 
     options.forEach((option) => {
-      const marketCode = option.bet_type || "unknown";
+      const marketCode =
+        option.bet_type || "unknown";
 
       const marketName =
         option.bet_type_name ||
@@ -40,10 +43,19 @@ const MatchContent = ({ matchData }) => {
     return Object.values(groups);
   }, [matchData]);
 
-  const selectedBet = selectedBets[matchData.id];
+  const selectedBet =
+    selectedBets[matchData.id];
+
+  const toggleMarket = (marketCode) => {
+    setOpenMarkets((prev) => ({
+      ...prev,
+      [marketCode]: !prev[marketCode],
+    }));
+  };
 
   return (
-    <div className="space-y-3 pb-4">
+    <div className="space-y-2 pb-4">
+
       {/* MATCH HEADER */}
       <div className="bg-card rounded-md p-3">
         <div className="text-xs text-muted-foreground mb-1">
@@ -77,40 +89,105 @@ const MatchContent = ({ matchData }) => {
 
       {/* MARKETS */}
       {groupedMarkets.length > 0 ? (
-        groupedMarkets.map((market) => (
-          <div
-            key={market.code}
-            className="bg-card rounded-md overflow-hidden"
-          >
-            <div className="font-bold text-sm px-3 py-2 border-b">
-              {market.name}
-            </div>
+        groupedMarkets.map((market) => {
+          const isOpen =
+            !!openMarkets[market.code];
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-3">
-              {market.options.map((option) => {
-                const isSelected =
-                  selectedBet?.betOptionId === option.id;
+          return (
+            <div
+              key={market.code}
+              className="bg-card rounded-md overflow-hidden"
+            >
 
-                return (
-                  <BetButton
-                    key={option.id}
-                    title={option.value}
-                    odds={option.odds}
-                    isSelected={isSelected}
-                    className="w-full"
-                    onClick={() =>
-                      toggleBet(
-                        matchData.id,
-                        option,
-                        matchData
-                      )
+              {/* MARKET HEADER */}
+              <button
+                type="button"
+                onClick={() =>
+                  toggleMarket(market.code)
+                }
+                className="
+                  w-full
+                  flex
+                  items-center
+                  justify-between
+                  gap-3
+                  px-3
+                  py-3
+                  text-left
+                  border-b
+                "
+              >
+                <div className="min-w-0">
+                  <div className="font-bold text-sm">
+                    {market.name}
+                  </div>
+
+                  <div className="text-[11px] text-muted-foreground mt-0.5">
+                    {market.options.length} options
+                  </div>
+                </div>
+
+                <span
+                  className={`
+                    text-lg
+                    shrink-0
+                    transition-transform
+                    duration-200
+                    ${
+                      isOpen
+                        ? "rotate-180"
+                        : ""
                     }
-                  />
-                );
-              })}
+                  `}
+                >
+                  ▼
+                </span>
+              </button>
+
+              {/* MARKET OPTIONS */}
+              {isOpen && (
+                <div
+                  className="
+                    grid
+                    grid-cols-2
+                    sm:grid-cols-3
+                    gap-2
+                    p-3
+                  "
+                >
+                  {market.options.map(
+                    (option) => {
+                      const isSelected =
+                        String(
+                          selectedBet?.betOptionId
+                        ) ===
+                        String(option.id);
+
+                      return (
+                        <BetButton
+                          key={option.id}
+                          title={option.value}
+                          odds={option.odds}
+                          isSelected={
+                            isSelected
+                          }
+                          className="w-full"
+                          onClick={() =>
+                            toggleBet(
+                              matchData.id,
+                              option,
+                              matchData
+                            )
+                          }
+                        />
+                      );
+                    }
+                  )}
+                </div>
+              )}
             </div>
-          </div>
-        ))
+          );
+        })
       ) : (
         <div className="bg-card rounded-md p-4 text-center text-muted-foreground">
           No betting markets available for this match.
@@ -123,8 +200,11 @@ const MatchContent = ({ matchData }) => {
 const MatchPage = () => {
   const { matchId } = useParams();
 
-  const [matchData, setMatchData] = useState(null);
-  const [error, setError] = useState(null);
+  const [matchData, setMatchData] =
+    useState(null);
+
+  const [error, setError] =
+    useState(null);
 
   useEffect(() => {
     const fetchMatchData = async () => {
@@ -132,7 +212,9 @@ const MatchPage = () => {
         setError(null);
 
         const response =
-          await sportsAdapter.getMatchDetails(matchId);
+          await sportsAdapter.getMatchDetails(
+            matchId
+          );
 
         if (response.error) {
           throw new Error(response.error);
@@ -144,8 +226,8 @@ const MatchPage = () => {
 
         setError(
           error.message ||
-          error ||
-          "An error occurred while fetching match data."
+            error ||
+            "An error occurred while fetching match data."
         );
 
         console.error(
@@ -174,6 +256,7 @@ const MatchPage = () => {
             lg:grid-cols-9
           "
         >
+
           {/* LEFT PANEL - DESKTOP */}
           <section className="hidden lg:block lg:col-span-2">
             <LeftPanel />
@@ -192,7 +275,9 @@ const MatchPage = () => {
             {error ? (
               <ErrorMessage error={error} />
             ) : matchData ? (
-              <MatchContent matchData={matchData} />
+              <MatchContent
+                matchData={matchData}
+              />
             ) : (
               <div className="text-center text-gray-500 py-6">
                 Loading match data...
@@ -206,8 +291,9 @@ const MatchPage = () => {
           </section>
         </main>
 
-        {/* BETSLIP - MOBILE */}
+        {/* MOBILE BETSLIP */}
         <MobileBetSlip />
+
       </BetsProvider>
     </div>
   );
