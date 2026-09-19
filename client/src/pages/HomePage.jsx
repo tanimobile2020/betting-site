@@ -7,20 +7,42 @@ import React from "react";
 
 const HomePage = () => {
   return (
-    <div className="w-full h-screen">
+    <div className="w-full min-h-screen">
       <Navbar />
+
       <BetsProvider>
-      <main className="min-w-[1024px] h-full w-full pt-[75px] grid grid-cols-8 lg:grid-cols-9 ">
-        <section className="col-span-2 lg:col-span-2">
-          <LeftPanel />
-        </section>
-        <section className="col-span-4 lg:col-span-5 px-4 lg:px-2">
-          <HomeContent />
-        </section>
-        <section className="col-span-2 lg:col-span-2">
-          <RightPanel />
-        </section>
-      </main>
+        <main
+          className="
+            w-full
+            min-h-screen
+            pt-[75px]
+            lg:grid
+            lg:grid-cols-9
+          "
+        >
+          {/* LEFT PANEL - desktop only */}
+          <section className="hidden lg:block lg:col-span-2">
+            <LeftPanel />
+          </section>
+
+          {/* MAIN CONTENT */}
+          <section
+            className="
+              w-full
+              px-3
+              sm:px-4
+              lg:px-2
+              lg:col-span-5
+            "
+          >
+            <HomeContent />
+          </section>
+
+          {/* RIGHT PANEL - desktop only */}
+          <section className="hidden lg:block lg:col-span-2">
+            <RightPanel />
+          </section>
+        </main>
       </BetsProvider>
     </div>
   );
