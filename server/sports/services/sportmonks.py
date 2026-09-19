@@ -1,4 +1,6 @@
 import os
+from datetime import date as date_class
+
 import requests
 
 
@@ -9,9 +11,33 @@ class SportmonksService:
         self.token = os.environ.get("SPORTMONKS_API_TOKEN")
 
         if not self.token:
-            raise ValueError("SPORTMONKS_API_TOKEN is not configured")
+            raise ValueError(
+                "SPORTMONKS_API_TOKEN is not configured"
+            )
+
+    def get_fixtures(self, date=None):
+        if date is None:
+            date = date_class.today().isoformat()
+
+        url = f"{self.BASE_URL}/fixtures/date/{date}"
+
+        response = requests.get(
+            url,
+            params={
+                "api_token": self.token,
+                "include": "participants;league;state",
+            },
+            timeout=30,
+        )
+
+        response.raise_for_status()
+        return response.json()
+
     def get_fixture_odds(self, fixture_id):
-        url = f"{self.BASE_URL}/odds/pre-match/fixtures/{fixture_id}"
+        url = (
+            f"{self.BASE_URL}/odds/pre-match/"
+            f"fixtures/{fixture_id}"
+        )
 
         response = requests.get(
             url,
@@ -23,20 +49,15 @@ class SportmonksService:
 
         response.raise_for_status()
         return response.json()
-        
-    def get_fixtures(self, date=None):
-        from datetime import date as date_class
 
-        if date is None:
-            date = date_class.today().isoformat()
-
-        url = f"{self.BASE_URL}/fixtures/date/{date}"
+    def get_markets(self):
+        url = f"{self.BASE_URL}/markets"
 
         response = requests.get(
             url,
             params={
                 "api_token": self.token,
-                "include": "participants;league;state",
+                "per_page": 100,
             },
             timeout=30,
         )
