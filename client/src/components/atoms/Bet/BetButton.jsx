@@ -23,28 +23,49 @@ const BetButton = ({
       variant="destructive"
       onClick={handleClick}
       className={`
+        relative
         flex
         flex-col
         items-center
         justify-center
         gap-0
-        h-[42px]
+        w-full
         min-w-0
+        min-h-[46px]
+        h-[46px]
         px-2
-        text-xs
+        py-1
+        touch-manipulation
+        select-none
+        cursor-pointer
         ${isSelected ? "bg-primary" : ""}
         ${className}
       `}
     >
       <span
-        className="font-semibold truncate max-w-full"
+        className="
+          pointer-events-none
+          select-none
+          font-semibold
+          text-xs
+          truncate
+          w-full
+          text-center
+        "
         style={{ lineHeight: "1.15" }}
       >
         {title}
       </span>
 
       <span
-        className="font-bold text-sm"
+        className="
+          pointer-events-none
+          select-none
+          font-bold
+          text-sm
+          w-full
+          text-center
+        "
         style={{ lineHeight: "1.15" }}
       >
         {odds}
