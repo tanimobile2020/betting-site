@@ -1,74 +1,152 @@
 import { sportsAdapter } from "@/services/api";
 import { formatBet } from "@/utils/formatBet";
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 
 const BetsContext = createContext();
+
 const STORAGE_KEY = "selectedBets";
 
 export const BetsProvider = ({ children }) => {
   const [selectedBets, setSelectedBets] = useState(() => {
-    // Initialize selectedBets from localStorage if available
-    const storedBets = localStorage.getItem(STORAGE_KEY);
-    if (storedBets) {
-      return JSON.parse(storedBets);
+    try {
+      const storedBets = localStorage.getItem(STORAGE_KEY);
+
+      if (storedBets) {
+        return JSON.parse(storedBets);
+      }
+
+      return {};
+    } catch (error) {
+      console.error(
+        "Error loading bets from localStorage",
+        error
+      );
+
+      return {};
     }
-    return {};
   });
 
   useEffect(() => {
-    // Save selected bets to localStorage whenever they change
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(selectedBets));
-    } catch (err) {
-      console.error("Error saving bets to localStorage", err);
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify(selectedBets)
+      );
+    } catch (error) {
+      console.error(
+        "Error saving bets to localStorage",
+        error
+      );
     }
   }, [selectedBets]);
 
   useEffect(() => {
-    // Validate bets on component mount and remove any unavailable bets
     const validateBets = async () => {
       const matchIds = Object.keys(selectedBets);
 
-      if (matchIds.length === 0) return;
+      if (matchIds.length === 0) {
+        return;
+      }
 
       try {
-        const availableMatches = await sportsAdapter.validateBetsAvailability({ matchIds });
-        const availableMatchIds = new Set(availableMatches.map(match => match.id.toString()));
-        const unavailableMatchIds = matchIds.filter(id => !availableMatchIds.has(id));
-
-        if (unavailableMatchIds.length > 0) {
-          unavailableMatchIds.forEach((id) => {
-            removeBet(id);
+        const availableMatches =
+          await sportsAdapter.validateBetsAvailability({
+            matchIds,
           });
-        }
-      } catch (err) {
-        console.error("Error validating bets", err);
+
+        const availableMatchIds = new Set(
+          availableMatches.map((match) =>
+            match.id.toString()
+          )
+        );
+
+        setSelectedBets((prev) => {
+          const updated = {};
+
+          Object.entries(prev).forEach(
+            ([matchId, bet]) => {
+              if (availableMatchIds.has(matchId.toString())) {
+                updated[matchId] = bet;
+              }
+            }
+          );
+
+          return updated;
+        });
+      } catch (error) {
+        console.error(
+          "Error validating bets",
+          error
+        );
       }
     };
 
     validateBets();
   }, []);
 
-  const clearBets = () => setSelectedBets({});
+  const clearBets = () => {
+    setSelectedBets({});
+  };
 
   const removeBet = (matchId) => {
     setSelectedBets((prev) => {
-      const { [matchId]: _, ...rest } = prev;
-      return rest;
+      const updated = { ...prev };
+
+      delete updated[matchId];
+
+      return updated;
     });
   };
 
-  const toggleBet = (matchId, betOption, matchDetails) => {
+  const toggleBet = (
+    matchId,
+    betOption,
+    matchDetails
+  ) => {
+    if (
+      !matchId ||
+      !betOption ||
+      !matchDetails
+    ) {
+      return;
+    }
+
     setSelectedBets((prev) => {
-      // betOption: {id, value, odds,betType}
-      if (prev[matchId] && prev[matchId].betOptionId === betOption.id) {
-        const { [matchId]: _, ...rest } = prev;
-        return rest;
+      const existingBet = prev[matchId];
+
+      /*
+       * Clicking the same selection again
+       * removes it from the BetSlip.
+       */
+      if (
+        existingBet &&
+        String(existingBet.betOptionId) ===
+          String(betOption.id)
+      ) {
+        const updated = { ...prev };
+
+        delete updated[matchId];
+
+        return updated;
       }
 
+      /*
+       * A match can have one active selection.
+       * Choosing another market/selection replaces
+       * the previous selection for that match.
+       */
       return {
         ...prev,
-        [matchId]: formatBet(betOption, matchDetails),
+
+        [matchId]: formatBet(
+          betOption,
+          matchDetails
+        ),
       };
     });
   };
@@ -80,7 +158,12 @@ export const BetsProvider = ({ children }) => {
     removeBet,
   };
 
-  return <BetsContext.Provider value={context}>{children}</BetsContext.Provider>;
+  return (
+    <BetsContext.Provider value={context}>
+      {children}
+    </BetsContext.Provider>
+  );
 };
 
-export const useBets = () => useContext(BetsContext);
+export const useBets = () =>
+  useContext(BetsContext);
