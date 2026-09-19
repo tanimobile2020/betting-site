@@ -1,30 +1,12 @@
 import React from "react";
-import { formatMatchDate } from "@/utils/date";
+import { formatMatchDate } from "@/utils/formatMatchDate";
 import { useBets } from "@/context/betsContext";
-import BetButton from "@/components/atoms/Bet/BetButton";
+import BetButton from "@/components/atoms/BetButton";
 import { Link } from "react-router";
 
 const SportEvent = ({ match }) => {
   const { selectedBets, toggleBet } = useBets();
   const selectedBet = selectedBets[match.id];
-
-  const odds = [
-    {
-      value: "home",
-      title: "1",
-      odds: match.home_win_odds,
-    },
-    {
-      value: "draw",
-      title: "X",
-      odds: match.draw_odds,
-    },
-    {
-      value: "away",
-      title: "2",
-      odds: match.away_win_odds,
-    },
-  ];
 
   return (
     <div className="bg-card rounded-md p-3">
@@ -32,7 +14,7 @@ const SportEvent = ({ match }) => {
         {formatMatchDate(match.start_time)}
       </p>
 
-      <div className="flex justify-between items-center gap-2">
+      <div className="flex justify-between items-center">
         <Link to={`/match/${match.id}`}>
           <span className="font-bold">{match.home_team}</span>
           <span className="flex flex-col">
@@ -41,21 +23,46 @@ const SportEvent = ({ match }) => {
         </Link>
 
         <div className="flex gap-2">
-          {odds.map((opt) => (
-            <BetButton
-              key={opt.value}
-              title={opt.title}
-              odds={opt.odds ?? "-"}
-              isSelected={selectedBet?.value === opt.value}
-              onClick={() =>
-                toggleBet(match.id, {
-                  value: opt.value,
-                  odds: opt.odds,
-                  match,
-                })
-              }
-            />
-          ))}
+          {match.bet_options
+            ?.filter((opt) => opt.bet_type?.code === "1X2")
+            .map((opt) => (
+              <BetButton
+                key={opt.value}
+                title={
+                  opt.value === "home"
+                    ? "1"
+                    : opt.value === "draw"
+                    ? "X"
+                    : "2"
+                }
+                odds={opt.odds}
+                isSelected={selectedBet?.value === opt.value}
+                onClick={() => toggleBet(match, opt)}
+              />
+            ))}
+
+          {!match.bet_options?.length && (
+            <>
+              <BetButton
+                title="1"
+                odds={match.home_win_odds}
+                isSelected={false}
+                onClick={() => {}}
+              />
+              <BetButton
+                title="X"
+                odds={match.draw_odds}
+                isSelected={false}
+                onClick={() => {}}
+              />
+              <BetButton
+                title="2"
+                odds={match.away_win_odds}
+                isSelected={false}
+                onClick={() => {}}
+              />
+            </>
+          )}
         </div>
       </div>
     </div>
