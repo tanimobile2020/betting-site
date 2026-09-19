@@ -35,28 +35,51 @@ const SportEvent = ({ match }) => {
   );
 
   return (
-    <div className="bg-card rounded-md p-3">
-      <p className="text-xs text-gray-700">
+    <div className="bg-card rounded-md p-3 mb-2">
+
+      {/* DATE */}
+      <p className="text-xs text-gray-700 mb-2">
         {formatMatchDate(match.start_time)}
       </p>
 
-      <div className="flex justify-between items-center gap-3">
+      <div
+        className="
+          flex
+          flex-col
+          gap-3
+          sm:flex-row
+          sm:items-center
+          sm:justify-between
+        "
+      >
+
+        {/* TEAMS */}
         <Link
           to={`/match/${match.id}`}
-          className="flex-1"
+          className="min-w-0 sm:flex-1"
         >
           <div className="flex flex-col">
-            <span className="font-bold">
+            <span className="font-bold text-sm sm:text-base">
               {match.home_team}
             </span>
 
-            <span className="font-bold">
+            <span className="font-bold text-sm sm:text-base">
               {match.away_team}
             </span>
           </div>
         </Link>
 
-        <div className="flex gap-2">
+        {/* 1 X 2 */}
+        <div
+          className="
+            grid
+            grid-cols-3
+            gap-2
+            w-full
+            sm:w-auto
+            sm:flex
+          "
+        >
           {betOptions.map((option) => (
             <BetButton
               key={option.id}
@@ -65,6 +88,7 @@ const SportEvent = ({ match }) => {
               isSelected={
                 selectedBet?.betOptionId === option.id
               }
+              className="w-full sm:w-[90px] lg:w-[105px]"
               onClick={() =>
                 toggleBet(
                   match.id,
