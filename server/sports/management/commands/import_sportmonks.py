@@ -5,20 +5,31 @@ from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from django.utils.text import slugify
 
-from sports.models import Sport, League, Match
+from sports.models import (
+    Sport,
+    League,
+    Match,
+    BetType,
+    BetOption,
+)
 from sports.services.sportmonks import SportmonksService
 
 
 class Command(BaseCommand):
-    help = "Import Sportmonks fixtures and 1X2 odds"
+    help = "Import Sportmonks fixtures and all available odds"
 
-    MARKET_ID = 1
+    # Bookmaker që po përdorim aktualisht
     BOOKMAKER_ID = 2
+
+    # Market 1 = 1X2 që po funksionon aktualisht
+    MARKET_1X2_ID = 1
 
     def handle(self, *args, **options):
         service = SportmonksService()
 
-        self.stdout.write("Loading Sportmonks fixtures...")
+        self.stdout.write(
+            "Loading Sportmonks fixtures..."
+        )
 
         try:
             result = service.get_fixtures()
@@ -61,21 +72,37 @@ class Command(BaseCommand):
                     )
                 )
 
-    def import_fixture(self, service, sport, fixture):
+    def import_fixture(
+        self,
+        service,
+        sport,
+        fixture,
+    ):
         fixture_id = fixture.get("id")
 
         if not fixture_id:
             return
 
-        league_data = fixture.get("league") or {}
-        league_id = league_data.get("id")
-        league_name = league_data.get("name") or "Sportmonks"
+        # ---------------------------------------
+        # LEAGUE
+        # ---------------------------------------
 
-        league_slug = (
-            f"sportmonks-{league_id}"
-            if league_id
-            else f"sportmonks-{slugify(league_name)}"
+        league_data = fixture.get("league") or {}
+
+        league_id = league_data.get("id")
+        league_name = (
+            league_data.get("name")
+            or "Sportmonks League"
         )
+
+        if league_id:
+            league_slug = (
+                f"sportmonks-{league_id}"
+            )
+        else:
+            league_slug = (
+                f"sportmonks-{slugify(league_name)}"
+            )
 
         league, _ = League.objects.get_or_create(
             slug=league_slug,
@@ -93,34 +120,56 @@ class Command(BaseCommand):
             },
         )
 
-        participants = fixture.get("participants") or []
+        # ---------------------------------------
+        # TEAMS
+        # ---------------------------------------
+
+        participants = (
+            fixture.get("participants")
+            or []
+        )
 
         home_team = None
         away_team = None
 
         for participant in participants:
-            meta = participant.get("meta") or {}
+            meta = (
+                participant.get("meta")
+                or {}
+            )
+
             location = meta.get("location")
             name = participant.get("name")
 
             if location == "home":
                 home_team = name
+
             elif location == "away":
                 away_team = name
 
-        fixture_name = fixture.get("name") or ""
+        fixture_name = (
+            fixture.get("name")
+            or ""
+        )
 
         if (
             (not home_team or not away_team)
             and " vs " in fixture_name
         ):
-            parts = fixture_name.split(" vs ", 1)
+            parts = fixture_name.split(
+                " vs ",
+                1,
+            )
 
             if not home_team:
-                home_team = parts[0].strip()
+                home_team = (
+                    parts[0].strip()
+                )
 
             if not away_team:
-                away_team = parts[1].strip()
+                away_team = (
+                    parts[1].strip()
+                )
 
         if not home_team:
             home_team = "Home"
@@ -128,64 +177,58 @@ class Command(BaseCommand):
         if not away_team:
             away_team = "Away"
 
-        starting_at = fixture.get("starting_at")
-        start_time = parse_datetime(starting_at)
+        # ---------------------------------------
+        # START TIME
+        # ---------------------------------------
 
-        if start_time and timezone.is_naive(start_time):
-            start_time = timezone.make_aware(
-                start_time,
-                timezone.get_current_timezone(),
+        starting_at = fixture.get(
+            "starting_at"
+        )
+
+        start_time = parse_datetime(
+            starting_at
+        )
+
+        if (
+            start_time
+            and timezone.is_naive(
+                start_time
+            )
+        ):
+            start_time = (
+                timezone.make_aware(
+                    start_time,
+                    timezone.get_current_timezone(),
+                )
             )
 
         if not start_time:
             self.stdout.write(
                 self.style.WARNING(
-                    f"Skipping fixture {fixture_id}: "
+                    f"Skipping fixture "
+                    f"{fixture_id}: "
                     f"no valid start time"
                 )
             )
             return
 
-        home_odds = None
-        draw_odds = None
-        away_odds = None
+        # ---------------------------------------
+        # GET ALL ODDS
+        # ---------------------------------------
+
+        odds = []
 
         try:
-            odds_result = service.get_fixture_odds(
-                fixture_id
+            odds_result = (
+                service.get_fixture_odds(
+                    fixture_id
+                )
             )
 
-            odds = odds_result.get("data", [])
-
-            for odd in odds:
-                if odd.get("market_id") != self.MARKET_ID:
-                    continue
-
-                if (
-                    odd.get("bookmaker_id")
-                    != self.BOOKMAKER_ID
-                ):
-                    continue
-
-                label = odd.get("label")
-                value = odd.get("value")
-
-                if value is None:
-                    continue
-
-                try:
-                    value = Decimal(str(value))
-                except InvalidOperation:
-                    continue
-
-                if label == "Home":
-                    home_odds = value
-
-                elif label == "Draw":
-                    draw_odds = value
-
-                elif label == "Away":
-                    away_odds = value
+            odds = (
+                odds_result.get("data")
+                or []
+            )
 
         except Exception as e:
             self.stdout.write(
@@ -195,7 +238,63 @@ class Command(BaseCommand):
                 )
             )
 
-        has_complete_odds = all(
+        # ---------------------------------------
+        # FIND 1X2
+        # ---------------------------------------
+
+        home_odds = None
+        draw_odds = None
+        away_odds = None
+
+        for odd in odds:
+
+            if (
+                odd.get("market_id")
+                != self.MARKET_1X2_ID
+            ):
+                continue
+
+            if (
+                odd.get("bookmaker_id")
+                != self.BOOKMAKER_ID
+            ):
+                continue
+
+            label = odd.get("label")
+            value = odd.get("value")
+
+            decimal_value = (
+                self.to_decimal(value)
+            )
+
+            if decimal_value is None:
+                continue
+
+            normalized_label = (
+                str(label)
+                .strip()
+                .lower()
+            )
+
+            if normalized_label in (
+                "home",
+                "1",
+            ):
+                home_odds = decimal_value
+
+            elif normalized_label in (
+                "draw",
+                "x",
+            ):
+                draw_odds = decimal_value
+
+            elif normalized_label in (
+                "away",
+                "2",
+            ):
+                away_odds = decimal_value
+
+        has_complete_1x2 = all(
             value is not None
             for value in (
                 home_odds,
@@ -203,6 +302,10 @@ class Command(BaseCommand):
                 away_odds,
             )
         )
+
+        # ---------------------------------------
+        # CREATE / UPDATE MATCH
+        # ---------------------------------------
 
         defaults = {
             "league": league,
@@ -212,45 +315,256 @@ class Command(BaseCommand):
             "status": "scheduled",
             "is_active": True,
             "is_popular": False,
-            "is_bet_available": has_complete_odds,
+            "is_bet_available": (
+                len(odds) > 0
+            ),
             "source_url": (
-                f"sportmonks:fixture:{fixture_id}"
+                f"sportmonks:fixture:"
+                f"{fixture_id}"
             ),
         }
 
-        if has_complete_odds:
+        if has_complete_1x2:
             defaults.update(
                 {
-                    "home_win_odds": home_odds,
-                    "draw_odds": draw_odds,
-                    "away_win_odds": away_odds,
-                    "last_odds_update": timezone.now(),
+                    "home_win_odds":
+                        home_odds,
+                    "draw_odds":
+                        draw_odds,
+                    "away_win_odds":
+                        away_odds,
+                    "last_odds_update":
+                        timezone.now(),
                 }
             )
 
-        match, created = Match.objects.update_or_create(
-            source_id=str(fixture_id),
-            defaults=defaults,
+        match, created = (
+            Match.objects.update_or_create(
+                source_id=str(fixture_id),
+                defaults=defaults,
+            )
         )
 
-        action = "Created" if created else "Updated"
+        # ---------------------------------------
+        # IMPORT ALL MARKETS / ODDS
+        # ---------------------------------------
 
-        if has_complete_odds:
+        imported_options = (
+            self.import_all_odds(
+                match,
+                odds,
+            )
+        )
+
+        action = (
+            "Created"
+            if created
+            else "Updated"
+        )
+
+        if has_complete_1x2:
             self.stdout.write(
                 self.style.SUCCESS(
                     f"{action}: "
-                    f"{home_team} vs {away_team} | "
+                    f"{home_team} vs "
+                    f"{away_team} | "
                     f"1={home_odds} "
                     f"X={draw_odds} "
-                    f"2={away_odds}"
+                    f"2={away_odds} | "
+                    f"Bet options="
+                    f"{imported_options}"
                 )
             )
         else:
             self.stdout.write(
                 self.style.WARNING(
                     f"{action}: "
-                    f"{home_team} vs {away_team} | "
-                    f"No complete 1X2 odds "
-                    f"from bookmaker {self.BOOKMAKER_ID}"
+                    f"{home_team} vs "
+                    f"{away_team} | "
+                    f"No complete 1X2 | "
+                    f"Bet options="
+                    f"{imported_options}"
                 )
             )
+
+    def import_all_odds(
+        self,
+        match,
+        odds,
+    ):
+        imported = 0
+
+        # Fshijmë odds e vjetra të importuara
+        # për këtë ndeshje.
+        #
+        # Kjo shmang dublikimet kur komanda
+        # ekzekutohet përsëri.
+        BetOption.objects.filter(
+            match=match
+        ).delete()
+
+        for odd in odds:
+
+            bookmaker_id = odd.get(
+                "bookmaker_id"
+            )
+
+            # Marrim vetëm bookmaker-in
+            # që kemi zgjedhur.
+            if (
+                bookmaker_id
+                != self.BOOKMAKER_ID
+            ):
+                continue
+
+            market_id = odd.get(
+                "market_id"
+            )
+
+            if market_id is None:
+                continue
+
+            label = odd.get("label")
+
+            if label is None:
+                continue
+
+            raw_value = odd.get(
+                "value"
+            )
+
+            decimal_value = (
+                self.to_decimal(
+                    raw_value
+                )
+            )
+
+            if decimal_value is None:
+                continue
+
+            # -----------------------------------
+            # MARKET NAME
+            # -----------------------------------
+
+            market_name = (
+                odd.get("market_name")
+                or odd.get(
+                    "market_description"
+                )
+                or f"Market {market_id}"
+            )
+
+            market_code = (
+                f"sportmonks_"
+                f"{market_id}"
+            )
+
+            bet_type, _ = (
+                BetType.objects.get_or_create(
+                    code=market_code,
+                    defaults={
+                        "name":
+                            market_name,
+                        "is_active":
+                            True,
+                    },
+                )
+            )
+
+            # Nëse fillimisht është krijuar
+            # si "Market 1" dhe më vonë API
+            # na jep emrin real, e përditësojmë.
+            if (
+                market_name
+                and bet_type.name
+                != market_name
+                and not market_name.startswith(
+                    "Market "
+                )
+            ):
+                bet_type.name = market_name
+                bet_type.save(
+                    update_fields=[
+                        "name"
+                    ]
+                )
+
+            # -----------------------------------
+            # OPTION LABEL
+            # -----------------------------------
+
+            option_label = str(
+                label
+            ).strip()
+
+            # Sportmonks mund të ketë edhe
+            # total/handicap të lidhur me odd.
+            total = odd.get("total")
+            handicap = odd.get(
+                "handicap"
+            )
+
+            if (
+                total is not None
+                and str(total)
+                not in option_label
+            ):
+                option_label = (
+                    f"{option_label} "
+                    f"{total}"
+                )
+
+            if (
+                handicap is not None
+                and str(handicap)
+                not in option_label
+            ):
+                option_label = (
+                    f"{option_label} "
+                    f"{handicap}"
+                )
+
+            # Modeli aktual ka max_length=50.
+            option_label = (
+                option_label[:50]
+            )
+
+            # -----------------------------------
+            # SAVE BET OPTION
+            # -----------------------------------
+
+            BetOption.objects.create(
+                match=match,
+                bet_type=bet_type,
+                value=option_label,
+                odds=decimal_value,
+            )
+
+            imported += 1
+
+        return imported
+
+    def to_decimal(
+        self,
+        value,
+    ):
+        if value is None:
+            return None
+
+        try:
+            decimal_value = Decimal(
+                str(value)
+            )
+
+            # DecimalField i modelit është
+            # max_digits=5, decimal_places=2.
+            return decimal_value.quantize(
+                Decimal("0.01")
+            )
+
+        except (
+            InvalidOperation,
+            ValueError,
+            TypeError,
+        ):
+            return None
