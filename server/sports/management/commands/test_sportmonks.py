@@ -7,7 +7,6 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         service = SportmonksService()
-
         fixture_id = 19722783
 
         self.stdout.write(
@@ -24,24 +23,25 @@ class Command(BaseCommand):
                 )
             )
 
+            found = 0
+
             for odd in odds:
-    label = str(odd.get("label", "")).strip().lower()
+                label = str(odd.get("label", "")).strip().lower()
 
-    if label in ["1", "x", "2", "home", "draw", "away"]:
-        self.stdout.write(
-            f"Market: {odd.get('market_id')} | "
-            f"Bookmaker: {odd.get('bookmaker_id')} | "
-            f"Label: {odd.get('label')} | "
-            f"Value: {odd.get('value')}"
-        )
-                )
-
-            if not odds:
-                self.stdout.write(
-                    self.style.WARNING(
-                        "No odds returned for this fixture."
+                if label in ["1", "x", "2", "home", "draw", "away"]:
+                    self.stdout.write(
+                        f"Market: {odd.get('market_id')} | "
+                        f"Bookmaker: {odd.get('bookmaker_id')} | "
+                        f"Label: {odd.get('label')} | "
+                        f"Value: {odd.get('value')}"
                     )
+                    found += 1
+
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"1X2 candidates found: {found}"
                 )
+            )
 
         except Exception as e:
             self.stdout.write(
