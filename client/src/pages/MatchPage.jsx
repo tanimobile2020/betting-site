@@ -1,6 +1,7 @@
 import LeftPanel from "@/components/organisms/panels/LeftPanel";
 import Navbar from "@/components/organisms/navigation/Navbar";
 import RightPanel from "@/components/organisms/panels/RightPanel";
+import MobileBetSlip from "@/components/organisms/MobileBetSlip";
 import BetButton from "@/components/atoms/Bet/BetButton";
 import ErrorMessage from "@/components/atoms/ErrorMessage";
 import { BetsProvider, useBets } from "@/context/betsContext";
@@ -42,25 +43,24 @@ const MatchContent = ({ matchData }) => {
   const selectedBet = selectedBets[matchData.id];
 
   return (
-    <div className="space-y-4 pb-6">
-
+    <div className="space-y-3 pb-4">
       {/* MATCH HEADER */}
-      <div className="bg-card rounded-md p-4">
-        <div className="text-xs text-muted-foreground mb-2">
+      <div className="bg-card rounded-md p-3">
+        <div className="text-xs text-muted-foreground mb-1">
           {matchData.league_name}
         </div>
 
-        <div className="text-sm text-muted-foreground mb-3">
+        <div className="text-xs text-muted-foreground mb-2">
           {formatMatchDate(matchData.start_time)}
         </div>
 
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <div className="font-bold text-lg break-words">
+            <div className="font-bold text-base break-words">
               {matchData.home_team}
             </div>
 
-            <div className="font-bold text-lg break-words">
+            <div className="font-bold text-base break-words">
               {matchData.away_team}
             </div>
           </div>
@@ -82,19 +82,11 @@ const MatchContent = ({ matchData }) => {
             key={market.code}
             className="bg-card rounded-md overflow-hidden"
           >
-            <div className="font-bold px-4 py-3 border-b">
+            <div className="font-bold text-sm px-3 py-2 border-b">
               {market.name}
             </div>
 
-            <div
-              className="
-                grid
-                grid-cols-2
-                sm:grid-cols-3
-                gap-2
-                p-3
-              "
-            >
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-3">
               {market.options.map((option) => {
                 const isSelected =
                   selectedBet?.betOptionId === option.id;
@@ -105,6 +97,7 @@ const MatchContent = ({ matchData }) => {
                     title={option.value}
                     odds={option.odds}
                     isSelected={isSelected}
+                    className="w-full"
                     onClick={() =>
                       toggleBet(
                         matchData.id,
@@ -175,11 +168,12 @@ const MatchPage = () => {
             w-full
             min-h-screen
             pt-[75px]
+            pb-[80px]
+            lg:pb-0
             lg:grid
             lg:grid-cols-9
           "
         >
-
           {/* LEFT PANEL - DESKTOP */}
           <section className="hidden lg:block lg:col-span-2">
             <LeftPanel />
@@ -210,8 +204,10 @@ const MatchPage = () => {
           <section className="hidden lg:block lg:col-span-2">
             <RightPanel />
           </section>
-
         </main>
+
+        {/* BETSLIP - MOBILE */}
+        <MobileBetSlip />
       </BetsProvider>
     </div>
   );
