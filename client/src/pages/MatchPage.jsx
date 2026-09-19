@@ -9,7 +9,6 @@ import { useParams } from "react-router";
 import { sportsAdapter } from "@/services/api";
 import { formatMatchDate } from "@/utils/formatMatchDate";
 
-
 const MatchContent = ({ matchData }) => {
   const { selectedBets, toggleBet } = useBets();
 
@@ -20,6 +19,7 @@ const MatchContent = ({ matchData }) => {
 
     options.forEach((option) => {
       const marketCode = option.bet_type || "unknown";
+
       const marketName =
         option.bet_type_name ||
         option.bet_type ||
@@ -42,9 +42,9 @@ const MatchContent = ({ matchData }) => {
   const selectedBet = selectedBets[matchData.id];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-6">
 
-      {/* Match header */}
+      {/* MATCH HEADER */}
       <div className="bg-card rounded-md p-4">
         <div className="text-xs text-muted-foreground mb-2">
           {matchData.league_name}
@@ -55,18 +55,18 @@ const MatchContent = ({ matchData }) => {
         </div>
 
         <div className="flex items-center justify-between gap-4">
-          <div>
-            <div className="font-bold text-lg">
+          <div className="min-w-0">
+            <div className="font-bold text-lg break-words">
               {matchData.home_team}
             </div>
 
-            <div className="font-bold text-lg">
+            <div className="font-bold text-lg break-words">
               {matchData.away_team}
             </div>
           </div>
 
           {matchData.status === "live" && (
-            <div className="font-bold">
+            <div className="font-bold whitespace-nowrap">
               {matchData.home_score ?? 0}
               {" : "}
               {matchData.away_score ?? 0}
@@ -75,7 +75,7 @@ const MatchContent = ({ matchData }) => {
         </div>
       </div>
 
-      {/* Markets */}
+      {/* MARKETS */}
       {groupedMarkets.length > 0 ? (
         groupedMarkets.map((market) => (
           <div
@@ -86,10 +86,18 @@ const MatchContent = ({ matchData }) => {
               {market.name}
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 p-3">
+            <div
+              className="
+                grid
+                grid-cols-2
+                sm:grid-cols-3
+                gap-2
+                p-3
+              "
+            >
               {market.options.map((option) => {
                 const isSelected =
-                  selectedBet?.id === option.id;
+                  selectedBet?.betOptionId === option.id;
 
                 return (
                   <BetButton
@@ -98,7 +106,11 @@ const MatchContent = ({ matchData }) => {
                     odds={option.odds}
                     isSelected={isSelected}
                     onClick={() =>
-                      toggleBet(matchData, option)
+                      toggleBet(
+                        matchData.id,
+                        option,
+                        matchData
+                      )
                     }
                   />
                 );
@@ -111,11 +123,9 @@ const MatchContent = ({ matchData }) => {
           No betting markets available for this match.
         </div>
       )}
-
     </div>
   );
 };
-
 
 const MatchPage = () => {
   const { matchId } = useParams();
@@ -160,27 +170,44 @@ const MatchPage = () => {
       <Navbar />
 
       <BetsProvider>
-        <main className="min-w-[1024px] min-h-screen w-full pt-[75px] grid grid-cols-8 lg:grid-cols-9">
+        <main
+          className="
+            w-full
+            min-h-screen
+            pt-[75px]
+            lg:grid
+            lg:grid-cols-9
+          "
+        >
 
-          <section className="col-span-2 lg:col-span-2">
+          {/* LEFT PANEL - DESKTOP */}
+          <section className="hidden lg:block lg:col-span-2">
             <LeftPanel />
           </section>
 
-          <section className="col-span-4 lg:col-span-5 px-4 lg:px-2">
-
+          {/* MATCH CONTENT */}
+          <section
+            className="
+              w-full
+              px-3
+              sm:px-4
+              lg:px-2
+              lg:col-span-5
+            "
+          >
             {error ? (
               <ErrorMessage error={error} />
             ) : matchData ? (
               <MatchContent matchData={matchData} />
             ) : (
-              <div className="text-center text-gray-500">
+              <div className="text-center text-gray-500 py-6">
                 Loading match data...
               </div>
             )}
-
           </section>
 
-          <section className="col-span-2 lg:col-span-2">
+          {/* RIGHT PANEL - DESKTOP */}
+          <section className="hidden lg:block lg:col-span-2">
             <RightPanel />
           </section>
 
