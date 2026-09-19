@@ -1,16 +1,13 @@
-import json
-
 from django.core.management.base import BaseCommand
 from sports.services.sportmonks import SportmonksService
 
 
 class Command(BaseCommand):
-    help = "Inspect Sportmonks odds structure"
+    help = "List unique Sportmonks markets from fixture odds"
 
     def handle(self, *args, **options):
         service = SportmonksService()
 
-        # Fixture që e dimë se ka odds
         fixture_id = 19722783
 
         self.stdout.write(
@@ -27,26 +24,45 @@ class Command(BaseCommand):
                 )
             )
 
-            if not odds:
-                self.stdout.write(
-                    self.style.WARNING("No odds returned.")
-                )
-                return
+            markets = {}
 
-            # Printojmë vetëm 10 rekordet e para,
-            # por me TË GJITHA fushat që kthen API-ja.
-            for index, odd in enumerate(odds[:10], start=1):
-                self.stdout.write(
-                    f"\n========== ODD {index} =========="
-                )
+            for odd in odds:
+                market_id = odd.get("market_id")
+                description = odd.get("market_description")
 
-                self.stdout.write(
-                    json.dumps(
-                        odd,
-                        indent=2,
-                        ensure_ascii=False,
-                        default=str,
+                if market_id not in markets:
+                    markets[market_id] = {
+                        "description": description,
+                        "labels": set(),
+                    }
+
+                label = odd.get("label")
+
+                if label:
+                    markets[market_id]["labels"].add(
+                        str(label)
                     )
+
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"Unique markets found: {len(markets)}"
+                )
+            )
+
+            for market_id in sorted(
+                markets,
+                key=lambda x: int(x)
+            ):
+                market = markets[market_id]
+
+                labels = ", ".join(
+                    sorted(market["labels"])
+                )
+
+                self.stdout.write(
+                    f"Market ID: {market_id} | "
+                    f"Description: {market['description']} | "
+                    f"Labels: {labels}"
                 )
 
         except Exception as e:
