@@ -2,6 +2,7 @@ import HomeContent from "@/components/organisms/HomeContent";
 import LeftPanel from "@/components/organisms/panels/LeftPanel";
 import Navbar from "@/components/organisms/navigation/Navbar";
 import RightPanel from "@/components/organisms/panels/RightPanel";
+import MobileBetSlip from "@/components/organisms/MobileBetSlip";
 import { BetsProvider } from "@/context/betsContext";
 import React from "react";
 
@@ -16,11 +17,13 @@ const HomePage = () => {
             w-full
             min-h-screen
             pt-[75px]
+            pb-[80px]
+            lg:pb-0
             lg:grid
             lg:grid-cols-9
           "
         >
-          {/* LEFT PANEL - desktop only */}
+          {/* LEFT PANEL - DESKTOP */}
           <section className="hidden lg:block lg:col-span-2">
             <LeftPanel />
           </section>
@@ -38,11 +41,14 @@ const HomePage = () => {
             <HomeContent />
           </section>
 
-          {/* RIGHT PANEL - desktop only */}
+          {/* RIGHT PANEL - DESKTOP */}
           <section className="hidden lg:block lg:col-span-2">
             <RightPanel />
           </section>
         </main>
+
+        {/* BETSLIP - MOBILE */}
+        <MobileBetSlip />
       </BetsProvider>
     </div>
   );
